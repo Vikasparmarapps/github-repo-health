@@ -1,0 +1,53 @@
+# ============================================================
+# .cursorrules — Binance AI Agent
+# ============================================================
+
+## Project Overview
+Multi-agent crypto analysis system using LangGraph + Groq + Binance API.
+Fetches live crypto data from Binance public API and generates
+AI-powered analysis via 4 specialized agents.
+
+## Architecture
+- LangGraph StateGraph orchestrates 4 agents
+- Agent 1 (Price Fetcher): fetches live Binance data
+- Agent 2 (Market Analyst): technical analysis with RSI/SMA
+- Agent 3 (News Sentiment): sentiment analysis via LLM knowledge
+- Agents 2+3 run in PARALLEL via ThreadPoolExecutor
+- Agent 4 (Report Writer): synthesizes all into final report
+
+## File Structure
+- app.py              → Streamlit UI only. No logic here.
+- config.py           → ALL settings. Change model/coins here.
+- style.css           → ALL CSS. No inline styles.
+- graph/workflow.py   → LangGraph StateGraph
+- agents/             → One file per agent, one job each
+- tools/binance_tools.py → Binance API calls + LLM factory
+- ui/styles.py        → CSS loader
+- ui/components.py    → Reusable UI components
+
+## Key Conventions
+- get_llm() in binance_tools.py — never instantiate LLM in agents directly
+- All Binance API calls go through binance_tools.py only
+- clean_output() strips markdown fences from all LLM responses
+- detect_coin() extracts coin symbol from natural language query
+- All settings in config.py — never hardcode symbols, URLs, model names
+
+## Adding a New Coin
+Add to SUPPORTED_COINS dict in config.py:
+  "SYMBOL": "Full Name"
+
+## Adding a New Agent
+1. Create agents/your_agent.py following existing pattern
+2. Add node in graph/workflow.py
+3. Add to parallel execution in node_run_agents_parallel()
+
+## Running
+pip install -r requirements.txt
+echo GROQ_API_KEY=gsk_your-key > .env
+streamlit run app.py
+
+## Binance API
+Uses public endpoints only — no auth needed:
+- /api/v3/ticker/24hr   → 24h stats
+- /api/v3/ticker/price  → all prices
+- /api/v3/klines        → candlestick data
