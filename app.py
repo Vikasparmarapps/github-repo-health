@@ -9,127 +9,95 @@ import streamlit as st
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"]  = "3"
 
-from config               import SUPPORTED_COINS
-from graph.workflow       import analyze_crypto
-from tools.binance_tools  import get_multiple_prices
-from ui.styles            import load_css
-from ui.components        import (
-    hero, market_ticker, price_display,
-    stats_row, sentiment_badge, report_box,
-    empty_state, card_open, card_close,
+
+from config              import SUGGESTED_REPOS
+from graph.workflow      import analyse_repo
+from ui.styles           import load_css
+from ui.components       import (
+    hero, repo_header, stats_row, verdict_badge,
+    report_box, explainer_card, empty_state, card_open, card_close,
 )
 
-# ════════════════════════════════════════════
-# PAGE CONFIG
-# ════════════════════════════════════════════
 st.set_page_config(
-    page_title="Binance AI Agent",
-    page_icon="🪙",
+    page_title="GitHub Repo Health Monitor",
+    page_icon="🔍",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 load_css()
 
-# ════════════════════════════════════════════
-# SESSION STATE
-# ════════════════════════════════════════════
-for key, default in [
-    ("result", None),
-    ("query",  ""),
-]:
+# ── Session state
+for key, default in [("result", None), ("query", "")]:
     if key not in st.session_state:
         st.session_state[key] = default
 
-# ════════════════════════════════════════════
-# LIVE MARKET TICKER
-# ════════════════════════════════════════════
+# ── Hero
 hero()
 
-try:
-    live_prices = get_multiple_prices(list(SUPPORTED_COINS.keys())[:8])
-    market_ticker(live_prices)
-except Exception:
-    pass
+# ── Layout
+col_left, col_right = st.columns([1, 1.3], gap="large")
 
-# ════════════════════════════════════════════
-# LAYOUT
-# ════════════════════════════════════════════
-col_left, col_right = st.columns([1, 1.2], gap="large")
-
-# ── LEFT: Input
 with col_left:
-    card_open("💬 Ask About Any Crypto")
+    card_open("🔍 Analyse Any Public Repo")
 
-    # Quick question buttons
-    st.markdown("<div style='color:#475569;font-size:.75rem;margin-bottom:8px'>Quick questions:</div>", unsafe_allow_html=True)
+    st.html("<div style='color:#475569;font-size:.75rem;margin-bottom:8px'>Quick examples:</div>")
     qcols = st.columns(2)
-    quick_qs = [
-        "Show BTC chart",
-        "Display Ethereum trend",
-        "Show SOL analysis",
-        "Analyze BNB with charts",
-    ]
-    for i, q in enumerate(quick_qs):
+    for i, repo in enumerate(SUGGESTED_REPOS[:4]):
         with qcols[i % 2]:
-            if st.button(q, key=f"quick_{i}", use_container_width=True):
-                st.session_state.query = q
-                st.session_state.auto_analyze = True
+            if st.button(repo, key=f"q_{i}", use_container_width=True):
+                st.session_state.query = repo
+                st.session_state.auto_run = True
                 st.rerun()
 
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-
+    st.html("<div style='height:8px'></div>")
     query = st.text_input(
-        "question",
+        "repo",
         value=st.session_state.query,
-        placeholder="e.g. What is the Bitcoin price? Is ETH going up?",
+        placeholder="e.g. langchain-ai/langchain or full GitHub URL",
         label_visibility="collapsed",
         key="query_input",
     )
-
-    analyze_btn = st.button("🔍 Analyze", use_container_width=True)
+    analyse_btn = st.button("🔍 Analyse Repo", use_container_width=True)
     card_close()
 
-    # Agent pipeline info
     card_open("🤖 Agent Pipeline")
-    st.markdown("""
+    st.html("""
     <div style='display:flex;flex-direction:column;gap:8px'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span style='color:#F0B90B;font-size:1rem'>1</span>
-        <span style='color:#94a3b8;font-size:.82rem'>🔴 <b>Price Fetcher</b> — live data from Binance API</span>
+        <span style='color:#3b82f6;font-size:1rem'>1</span>
+        <span style='color:#94a3b8;font-size:.82rem'>🔴 <b>Repo Fetcher</b> — stars, commits, issues, releases</span>
       </div>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span style='color:#F0B90B;font-size:1rem'>2</span>
-        <span style='color:#94a3b8;font-size:.82rem'>📊 <b>Market Analyst</b> + 📰 <b>News Sentiment</b> — parallel</span>
+        <span style='color:#3b82f6;font-size:1rem'>2</span>
+        <span style='color:#94a3b8;font-size:.82rem'>📊 <b>Activity Analyst</b> + 💬 <b>Community Analyst</b> — parallel</span>
       </div>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span style='color:#F0B90B;font-size:1rem'>3</span>
-        <span style='color:#94a3b8;font-size:.82rem'>📝 <b>Report Writer</b> — final synthesis</span>
+        <span style='color:#3b82f6;font-size:1rem'>3</span>
+        <span style='color:#94a3b8;font-size:.82rem'>📝 <b>Report Writer</b> — final verdict + next steps</span>
+      </div>
+      <div style='display:flex;align-items:center;gap:10px'>
+        <span style='color:#3b82f6;font-size:1rem'>4</span>
+        <span style='color:#94a3b8;font-size:.82rem'>📈 <b>Chart Generator</b> — commit trends, health radar</span>
       </div>
     </div>
     <div style='color:#334155;font-size:.74rem;margin-top:10px'>
-      Powered by LangGraph · Groq · Binance Public API
+      Powered by LangGraph · Groq · GitHub Public API
     </div>
-    """, unsafe_allow_html=True)
+    """)
     card_close()
 
-# ── RIGHT: Results
 with col_right:
-
-    # Check if analyze button clicked OR quick button was clicked
-    trigger_analysis = analyze_btn or st.session_state.get("auto_analyze", False)
-    
-    if trigger_analysis:
-        # Clear the auto_analyze flag
-        st.session_state.auto_analyze = False
-        
+    trigger = analyse_btn or st.session_state.get("auto_run", False)
+    if trigger:
+        st.session_state.auto_run = False
         q = query.strip()
         if not q:
-            st.warning("Please enter a question.")
+            st.warning("Please enter a repository name or URL.")
         else:
             st.session_state.query = q
-            with st.spinner("🤖 Fetching live data and analyzing..."):
-                result = analyze_crypto(q)
+            with st.spinner("🤖 Fetching repo data and running analysis..."):
+                result = analyse_repo(q)
                 st.session_state.result = result
 
     if st.session_state.result:
@@ -138,81 +106,80 @@ with col_right:
         if result.get("status") == "error":
             st.error(result.get("report", "Analysis failed."))
         else:
-            price_data     = result.get("price_data", {})
-            sentiment_data = result.get("sentiment_data", {})
+            repo_data      = result.get("repo_data", {})
+            activity_data  = result.get("activity_data", {})
+            community_data = result.get("community_data", {})
 
-            # Price card
-            price_display(price_data)
+            repo_header(repo_data)
+            stats_row(repo_data)
+            st.html("<div style='height:12px'></div>")
 
-            # Stats row
-            if price_data.get("success"):
-                stats_row(price_data)
-                st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+            verdict_badge(
+                result.get("verdict", "MONITOR"),
+                activity_data.get("signal", "UNKNOWN"),
+                community_data.get("sentiment_label", "UNKNOWN"),
+            )
 
-            # Sentiment badge
-            if sentiment_data.get("success"):
-                sentiment_badge(sentiment_data)
+            # ── Repo Explainer — show right after verdict
+            explainer_data = result.get("explainer_data", {})
+            #if explainer_data.get("success"):
+            #    explainer_card(explainer_data)
 
-            # ── NEW: Charts Section ──
-            charts = result.get("charts", {})
-            if charts and len(charts) > 0:
-                st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-                st.markdown("### 📈 Interactive Charts")
-                
-                chart_tabs = st.tabs([
-                    "🕯️ Candlestick",
-                    "📊 Price Trend",
-                    "🔧 RSI Indicator",
-                    "📉 Volume"
-                ])
-                
-                with chart_tabs[0]:
-                    if "candlestick" in charts:
-                        st.plotly_chart(charts["candlestick"], use_container_width=True)
-                    else:
-                        st.info("Candlestick chart not available")
-                
-                with chart_tabs[1]:
-                    if "trend" in charts:
-                        st.plotly_chart(charts["trend"], use_container_width=True)
-                    else:
-                        st.info("Trend chart not available")
-                
-                with chart_tabs[2]:
-                    if "rsi" in charts:
-                        st.plotly_chart(charts["rsi"], use_container_width=True)
-                    else:
-                        st.info("RSI chart not available")
-                
-                with chart_tabs[3]:
-                    if "volume" in charts:
-                        st.plotly_chart(charts["volume"], use_container_width=True)
-                    else:
-                        st.info("Volume chart not available")
+            # Scroll-to-charts indicator
+            if result.get("charts"):
+                st.html("""
+                <a href="#charts" style="text-decoration:none">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:10px;
+                    background:linear-gradient(135deg,#0c1420,#111d2e);border:1px solid #3b82f644;
+                    border-radius:12px;padding:12px 20px;margin:14px 0;cursor:pointer">
+                    <span style="color:#3b82f6;font-size:.85rem;font-weight:600">📈 Interactive Charts Below</span>
+                    <span style="animation:bounce 1.2s infinite;display:inline-block">↓</span>
+                  </div>
+                </a>
+                """)
 
-            # Tabbed results
-            st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-            tab_report, tab_technical, tab_sentiment = st.tabs([
-                "📋 Full Report",
-                "📊 Technical Analysis",
-                "📰 News & Sentiment",
+            st.html("<div style='height:16px'></div>")
+            tab_report, tab_activity, tab_community, tab_explain = st.tabs([
+                "📋 Full Report", "📊 Activity Analysis", "💬 Community Analysis", "🧠 Deep Explanation"
             ])
-
             with tab_report:
-                report_box(result.get("report", "No report available."))
+                report_box(result.get("report", "No report."))
                 st.download_button(
-                    "⬇️ Download Report (.txt)",
+                    "⬇️ Download Report",
                     data=result.get("report", "").encode(),
-                    file_name=f"{price_data.get('symbol', 'crypto')}_analysis.txt",
+                    file_name=f"{repo_data.get('repo','repo')}_health.txt",
                     mime="text/plain",
                 )
-
-            with tab_technical:
-                analysis = result.get("market_data", {}).get("analysis", "No analysis.")
-                report_box(analysis)
-
-            with tab_sentiment:
-                sentiment = result.get("sentiment_data", {}).get("sentiment", "No sentiment data.")
-                report_box(sentiment)
+            with tab_activity:
+                report_box(activity_data.get("analysis", "No analysis."))
+            with tab_community:
+                report_box(community_data.get("sentiment", "No sentiment data."))
+            with tab_explain:
+                explainer_data = result.get("explainer_data", {})
+                report_box(explainer_data.get("explanation", "No explanation available."))
     else:
         empty_state()
+
+# ── Charts: full width below columns
+if st.session_state.result and st.session_state.result.get("status") != "error":
+    charts = st.session_state.result.get("charts", {})
+    if charts:
+        st.markdown("---")
+        st.html('<h3 id="charts">📈 Interactive Charts</h3>')
+        tab_gauge, tab_commits, tab_radar, tab_issues = st.tabs([
+            "🎯 Health Score", "📅 Commit History", "🕸️ Health Radar", "🐛 Issues"
+        ])
+        with tab_gauge:
+            if "gauge" in charts:
+                st.plotly_chart(charts["gauge"], use_container_width=True)
+        with tab_commits:
+            if "commits" in charts:
+                st.plotly_chart(charts["commits"], use_container_width=True)
+            else:
+                st.info("Not enough commit data")
+        with tab_radar:
+            if "radar" in charts:
+                st.plotly_chart(charts["radar"], use_container_width=True)
+        with tab_issues:
+            if "issues" in charts:
+                st.plotly_chart(charts["issues"], use_container_width=True)

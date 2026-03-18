@@ -1,254 +1,45 @@
-/* ============================================================
-   style.css — Binance AI Agent UI Styles
-   ============================================================
-
-   1. Base & Layout
-   2. Hero Header
-   3. Cards
-   4. Price Display
-   5. Input & Buttons
-   6. Report Output
-   7. Market Overview Bar
-   8. Sentiment Badge
-   9. Stat Boxes
-   10. Animations
-   ============================================================ */
-
-
-/* ── 1. Base & Layout ──────────────────────────────────────── */
-
 section[data-testid="stSidebar"] { display: none !important; }
-#MainMenu, footer, header         { display: none !important; }
+#MainMenu, footer, header { display: none !important; }
+.stApp { background: #060a0f; }
+.block-container { max-width: 1200px !important; padding: 0 28px 80px !important; }
+html, body { font-family: 'Inter', sans-serif; color: #e2e8f0; }
 
-.stApp {
-    background: #060a0f;
-}
+.hero { text-align: center; padding: 40px 0 20px; }
+.hero h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 6px; }
+.hero p { color: #475569; font-size: .88rem; margin: 0; }
 
-.block-container {
-    max-width: 1100px !important;
-    padding: 0 28px 80px !important;
-}
+.card { background: #0c1420; border: 1px solid #1e293b; border-radius: 14px; padding: 18px 22px; margin-bottom: 14px; }
+.card-title { font-size: .66rem; font-weight: 700; letter-spacing: .12em; color: #3b82f6; text-transform: uppercase; margin-bottom: 10px; }
 
-html, body {
-    font-family: 'Inter', sans-serif;
-    color: #e2e8f0;
-}
+.price-big { font-size: 1.6rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #f1f5f9; line-height: 1.2; }
+.coin-name { font-size: .82rem; color: #64748b; margin-top: 4px; }
 
+.lang-badge { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 3px 10px; font-size: .72rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
+.archived-badge { background: #431407; border: 1px solid #ef4444; border-radius: 6px; padding: 3px 10px; font-size: .72rem; color: #ef4444; font-weight: 700; }
 
-/* ── 2. Hero Header ────────────────────────────────────────── */
+.verdict-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 6px 16px; font-size: .82rem; font-weight: 700; }
+.verdict-adopt   { background: #052e16; border: 1px solid #22c55e; color: #22c55e; }
+.verdict-caution { background: #1a1500; border: 1px solid #F0B90B; color: #F0B90B; }
+.verdict-monitor { background: #1a1200; border: 1px solid #f97316; color: #f97316; }
+.verdict-replace { background: #2d0a0a; border: 1px solid #ef4444; color: #ef4444; }
 
-.hero {
-    text-align: center;
-    padding: 40px 0 20px;
-}
+.signal-badge { display: inline-flex; align-items: center; border-radius: 20px; padding: 6px 14px; font-size: .78rem; font-weight: 600; background: #0c1420; border: 1px solid #1e293b; color: #94a3b8; }
 
-.hero h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #F0B90B 0%, #F8D12F 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0 0 6px;
-}
+.report-box { background: #071015; border: 1px solid #1e293b; border-radius: 12px; padding: 22px 26px; line-height: 1.9; color: #cbd5e1; font-size: .9rem; }
+.report-box h2 { color: #3b82f6; font-size: 1rem; margin: 20px 0 8px; font-weight: 700; }
 
-.hero p {
-    color: #475569;
-    font-size: .88rem;
-    margin: 0;
-}
+.stat-box { background: #071015; border: 1px solid #1e293b; border-radius: 10px; padding: 12px 16px; text-align: center; }
+.stat-num { font-size: 1.2rem; font-weight: 700; color: #3b82f6; font-family: 'JetBrains Mono', monospace; }
+.stat-label { font-size: .7rem; color: #64748b; margin-top: 2px; }
 
+.stTextInput input { background: #071015 !important; border: 1.5px solid #1e293b !important; border-radius: 10px !important; color: #e2e8f0 !important; font-family: 'Inter', sans-serif !important; font-size: .9rem !important; }
+.stTextInput input:focus { border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,.08) !important; }
+.stButton > button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; border: none !important; border-radius: 10px !important; color: #fff !important; font-family: 'Inter', sans-serif !important; font-weight: 700 !important; font-size: .9rem !important; padding: 11px 24px !important; transition: opacity .2s !important; width: 100% !important; }
+.stButton > button:hover { opacity: .88 !important; }
 
-/* ── 3. Cards ──────────────────────────────────────────────── */
+.stSpinner > div { border-top-color: #3b82f6 !important; }
 
-.card {
-    background: #0c1420;
-    border: 1px solid #1e293b;
-    border-radius: 14px;
-    padding: 18px 22px;
-    margin-bottom: 14px;
-}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+.live-dot { display: inline-block; width: 7px; height: 7px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; margin-right: 6px; }
 
-.card-title {
-    font-size: .66rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    color: #F0B90B;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-}
-
-
-/* ── 4. Price Display ──────────────────────────────────────── */
-
-.price-big {
-    font-size: 2.4rem;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    color: #f1f5f9;
-    line-height: 1;
-}
-
-.price-change-up {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #22c55e;
-}
-
-.price-change-down {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #ef4444;
-}
-
-.coin-name {
-    font-size: .8rem;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-
-/* ── 5. Input & Buttons ────────────────────────────────────── */
-
-.stTextInput input {
-    background: #071015 !important;
-    border: 1.5px solid #1e293b !important;
-    border-radius: 10px !important;
-    color: #e2e8f0 !important;
-    font-family: 'Inter', sans-serif !important;
-    font-size: .9rem !important;
-}
-
-.stTextInput input:focus {
-    border-color: #F0B90B !important;
-    box-shadow: 0 0 0 3px rgba(240, 185, 11, .08) !important;
-}
-
-.stButton > button {
-    background: linear-gradient(135deg, #F0B90B, #d4a017) !important;
-    border: none !important;
-    border-radius: 10px !important;
-    color: #000 !important;
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: .9rem !important;
-    padding: 11px 24px !important;
-    transition: opacity .2s, transform .15s !important;
-    width: 100% !important;
-}
-
-.stButton > button:hover {
-    opacity: .88 !important;
-    transform: translateY(-1px) !important;
-}
-
-
-/* ── 6. Report Output ──────────────────────────────────────── */
-
-.report-box {
-    background: #071015;
-    border: 1px solid #1e293b;
-    border-radius: 12px;
-    padding: 22px 26px;
-    line-height: 1.9;
-    color: #cbd5e1;
-    font-size: .9rem;
-}
-
-.report-box h2 {
-    color: #F0B90B;
-    font-size: 1rem;
-    margin: 20px 0 8px;
-    font-weight: 700;
-}
-
-
-/* ── 7. Market Overview Bar ────────────────────────────────── */
-
-.market-ticker {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-}
-
-.ticker-item {
-    background: #0c1420;
-    border: 1px solid #1e293b;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: .8rem;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-.ticker-symbol {
-    color: #F0B90B;
-    font-weight: 700;
-    margin-right: 6px;
-}
-
-.ticker-up   { color: #22c55e; }
-.ticker-down { color: #ef4444; }
-
-
-/* ── 8. Sentiment Badge ────────────────────────────────────── */
-
-.sentiment-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 20px;
-    padding: 5px 14px;
-    font-size: .8rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.sentiment-bullish { background: #052e16; border: 1px solid #22c55e; color: #22c55e; }
-.sentiment-bearish { background: #2d0a0a; border: 1px solid #ef4444; color: #ef4444; }
-.sentiment-neutral { background: #1a1500; border: 1px solid #F0B90B; color: #F0B90B; }
-
-
-/* ── 9. Stat Boxes ─────────────────────────────────────────── */
-
-.stat-box {
-    background: #071015;
-    border: 1px solid #1e293b;
-    border-radius: 10px;
-    padding: 12px 16px;
-    text-align: center;
-}
-
-.stat-num {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #F0B90B;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-.stat-label {
-    font-size: .7rem;
-    color: #64748b;
-    margin-top: 2px;
-}
-
-
-/* ── 10. Animations ────────────────────────────────────────── */
-
-.stSpinner > div {
-    border-top-color: #F0B90B !important;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .4; }
-}
-
-.live-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    background: #22c55e;
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
-    margin-right: 6px;
-}
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }

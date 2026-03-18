@@ -1,14 +1,6 @@
-# agents/chart_generator.py
-"""
-Chart Generator Agent - Generates interactive cryptocurrency charts
-Integrates with existing Binance AI Agent architecture
-
-Charts generated:
-1. Candlestick (OHLCV + volume)
-2. Price Trend (line + SMA)
-3. RSI Indicator
-4. Volume Analysis
-"""
+# ============================================================
+# agents/chart_generator.py — Agent 5: Generate charts
+# ============================================================
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -16,375 +8,156 @@ from plotly.subplots import make_subplots
 import numpy as np
 
 
-# ════════════════════════════════════════════════════════════════
-# INDICATOR CALCULATIONS
-# ════════════════════════════════════════════════════════════════
+def generate_commit_chart(weekly: list, repo_name: str) -> go.Figure:
+    """52-week commit activity bar chart with rolling average."""
+    weeks = list(range(1, len(weekly) + 1))
+    rolling = pd.Series(weekly).rolling(4, min_periods=1).mean().tolist()
 
-def calculate_rsi(prices, period=14):
-    """Calculate Relative Strength Index"""
-    deltas = np.diff(prices)
-    seed = deltas[:period+1]
-    up = seed[seed >= 0].sum() / period
-    down = -seed[seed < 0].sum() / period
-    rs = up / down if down != 0 else 0
-    rsi = np.zeros_like(prices)
-    rsi[:period] = 100. - 100. / (1. + rs)
-    
-    for i in range(period, len(prices)):
-        delta = deltas[i - 1]
-        if delta > 0:
-            upval = delta
-            downval = 0.
-        else:
-            upval = 0.
-            downval = -delta
-        
-        up = (up * (period - 1) + upval) / period
-        down = (down * (period - 1) + downval) / period
-        
-        rs = up / down if down != 0 else 0
-        rsi[i] = 100. - 100. / (1. + rs)
-    
-    return rsi
+    # Color bars: recent = brighter
+    colors = ["#1e3a5f"] * len(weekly)
+    for i in range(max(0, len(weekly)-12), len(weekly)):
+        colors[i] = "#2563eb"
+    for i in range(max(0, len(weekly)-4), len(weekly)):
+        colors[i] = "#F0B90B"
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=weeks, y=weekly,
+        name="Commits",
+        marker=dict(color=colors),
+        hovertemplate="Week %{x}: %{y} commits<extra></extra>"
+    ))
+    fig.add_trace(go.Scatter(
+        x=weeks, y=rolling,
+        name="4-week avg",
+        line=dict(color="#ef4444", width=2),
+        hovertemplate="Avg: %{y:.1f}<extra></extra>"
+    ))
+    fig.update_layout(
+        title=f"<b>{repo_name} — 52-Week Commit Activity</b>",
+        height=380, template="plotly_dark",
+        hovermode="x unified",
+        margin=dict(l=40, r=40, t=50, b=40),
+        legend=dict(orientation="h", y=1.1),
+        xaxis_title="Week (52 = most recent)",
+        yaxis_title="Commits",
+    )
+    return fig
 
 
-def calculate_sma(prices, period):
-    """Calculate Simple Moving Average"""
-    return pd.Series(prices).rolling(window=period).mean().values
+def generate_health_radar(breakdown: dict, repo_name: str) -> go.Figure:
+    """Radar chart of health score components."""
+    categories = list(breakdown.keys())
+    max_vals = {"activity": 30, "momentum": 20, "responsiveness": 20,
+                "recency": 20, "release_cadence": 10}
+
+    # Normalise to 0-100
+    values = [
+        round(breakdown.get(c, 0) / max_vals.get(c, 10) * 100)
+        for c in categories
+    ]
+    labels = [c.replace("_", " ").title() for c in categories]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=values + [values[0]],
+        theta=labels + [labels[0]],
+        fill="toself",
+        fillcolor="rgba(240,185,11,0.2)",
+        line=dict(color="#F0B90B", width=2),
+        name="Health",
+        hovertemplate="%{theta}: %{r}/100<extra></extra>"
+    ))
+    fig.update_layout(
+        title=f"<b>{repo_name} — Health Breakdown</b>",
+        height=380, template="plotly_dark",
+        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+        margin=dict(l=40, r=40, t=50, b=40),
+    )
+    return fig
 
 
-# ════════════════════════════════════════════════════════════════
-# CHART GENERATORS
-# ════════════════════════════════════════════════════════════════
+def generate_issues_chart(issues: dict, repo_name: str) -> go.Figure:
+    """Bar chart comparing open vs closed issues + breakdown."""
+    categories = ["Open Issues", "Closed Issues", "Bug Reports", "Feature Requests"]
+    values = [
+        issues.get("open_count", 0),
+        issues.get("closed_count", 0),
+        issues.get("bug_count", 0),
+        issues.get("feature_count", 0),
+    ]
+    colors = ["#ef4444", "#22c55e", "#f97316", "#3b82f6"]
 
-def generate_candlestick_chart(klines_data, symbol):
-    """
-    Generate candlestick chart with volume
-    
-    Args:
-        klines_data: List of [timestamp, open, high, low, close, volume, ...]
-        symbol: Cryptocurrency symbol (BTC, ETH, etc.)
-    
-    Returns:
-        plotly.graph_objects.Figure
-    """
+    fig = go.Figure(go.Bar(
+        x=categories, y=values,
+        marker=dict(color=colors),
+        hovertemplate="%{x}: %{y}<extra></extra>"
+    ))
+    fig.update_layout(
+        title=f"<b>{repo_name} — Issue Breakdown</b>",
+        height=360, template="plotly_dark",
+        margin=dict(l=40, r=40, t=50, b=40),
+        yaxis_title="Count",
+    )
+    return fig
+
+
+def generate_score_gauge(score: int, label: str, repo_name: str) -> go.Figure:
+    """Gauge chart for the overall health score."""
+    color = (
+        "#22c55e" if score >= 75 else
+        "#F0B90B" if score >= 50 else
+        "#f97316" if score >= 30 else
+        "#ef4444"
+    )
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=score,
+        title={"text": f"{repo_name}<br><span style='font-size:.8em'>{label}</span>"},
+        gauge={
+            "axis": {"range": [0, 100], "tickwidth": 1},
+            "bar":  {"color": color},
+            "steps": [
+                {"range": [0,  30], "color": "#2d0a0a"},
+                {"range": [30, 60], "color": "#1a1500"},
+                {"range": [60, 80], "color": "#052e16"},
+                {"range": [80,100], "color": "#052e16"},
+            ],
+            "threshold": {"line": {"color": "white", "width": 3}, "value": score},
+        },
+        number={"suffix": "/100"},
+    ))
+    fig.update_layout(
+        height=320, template="plotly_dark",
+        margin=dict(l=30, r=30, t=60, b=20),
+    )
+    return fig
+
+
+def run_chart_generator(repo_data: dict) -> dict:
+    """Generate all charts from repo_data."""
     try:
-        df = pd.DataFrame(klines_data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_volume', 'trades', 'buy_volume', 'buy_quote_volume'
-        ])
-        
-        # Convert types
-        for col in ['open', 'high', 'low', 'close', 'volume']:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df = df.dropna()
-        
-        # Create subplots
-        fig = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.12,
-            row_heights=[0.7, 0.3],
-            specs=[[{"secondary_y": False}], [{"secondary_y": False}]]
+        meta     = repo_data.get("meta", {})
+        commits  = repo_data.get("commits", {})
+        issues   = repo_data.get("issues", {})
+        health   = repo_data.get("health", {})
+        name     = meta.get("repo", "repo")
+        weekly   = commits.get("weekly", [])
+
+        charts = {}
+
+        if len(weekly) >= 4:
+            charts["commits"]  = generate_commit_chart(weekly, name)
+
+        if health.get("breakdown"):
+            charts["radar"]    = generate_health_radar(health["breakdown"], name)
+
+        charts["issues"]       = generate_issues_chart(issues, name)
+        charts["gauge"]        = generate_score_gauge(
+            health.get("score", 0), health.get("label", ""), name
         )
-        
-        # Candlestick
-        fig.add_trace(
-            go.Candlestick(
-                x=df['timestamp'],
-                open=df['open'],
-                high=df['high'],
-                low=df['low'],
-                close=df['close'],
-                name=f"{symbol}/USDT",
-                hovertemplate="<b>%{x|%Y-%m-%d %H:%M}</b><br>" +
-                              "O: $%{open:.2f} | H: $%{high:.2f}<br>" +
-                              "L: $%{low:.2f} | C: $%{close:.2f}<extra></extra>"
-            ),
-            row=1, col=1
-        )
-        
-        # Volume
-        colors = ['red' if close < open_ else 'green'
-                  for close, open_ in zip(df['close'], df['open'])]
-        
-        fig.add_trace(
-            go.Bar(
-                x=df['timestamp'],
-                y=df['volume'],
-                name='Volume',
-                marker=dict(color=colors),
-                hovertemplate="<b>%{x|%Y-%m-%d %H:%M}</b><br>Vol: %{y:.2f}<extra></extra>"
-            ),
-            row=2, col=1
-        )
-        
-        # Layout
-        fig.update_layout(
-            title=f"<b>{symbol}/USDT Candlestick</b>",
-            height=600,
-            hovermode='x unified',
-            template='plotly_dark',
-            font=dict(size=11),
-            margin=dict(l=40, r=40, t=60, b=40)
-        )
-        
-        fig.update_xaxes(title_text="Time", row=2, col=1)
-        fig.update_yaxes(title_text="Price (USDT)", row=1, col=1)
-        fig.update_yaxes(title_text="Volume", row=2, col=1)
-        
-        return fig
-        
+
+        return {"success": True, "charts": charts}
     except Exception as e:
-        raise Exception(f"Candlestick chart error: {str(e)}")
-
-
-def generate_line_chart(klines_data, symbol):
-    """Generate price trend line chart with moving averages"""
-    try:
-        df = pd.DataFrame(klines_data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_volume', 'trades', 'buy_volume', 'buy_quote_volume'
-        ])
-        
-        df['close'] = pd.to_numeric(df['close'], errors='coerce')
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df = df.dropna()
-        
-        sma_20 = calculate_sma(df['close'].values, 20)
-        sma_50 = calculate_sma(df['close'].values, 50)
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=df['timestamp'], y=df['close'],
-            mode='lines', name=f"{symbol} Price",
-            line=dict(color='#1f77b4', width=2),
-            hovertemplate="<b>%{x|%Y-%m-%d %H:%M}</b><br>$%{y:.2f}<extra></extra>"
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=df['timestamp'], y=sma_20,
-            mode='lines', name='SMA 20',
-            line=dict(color='#ff7f0e', width=1.5, dash='dash'),
-            hovertemplate="<b>SMA 20:</b> $%{y:.2f}<extra></extra>"
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=df['timestamp'], y=sma_50,
-            mode='lines', name='SMA 50',
-            line=dict(color='#2ca02c', width=1.5, dash='dash'),
-            hovertemplate="<b>SMA 50:</b> $%{y:.2f}<extra></extra>"
-        ))
-        
-        fig.update_layout(
-            title=f"<b>{symbol}/USDT Price Trend</b>",
-            height=500,
-            hovermode='x unified',
-            template='plotly_dark',
-            font=dict(size=11),
-            xaxis_title="Time",
-            yaxis_title="Price (USDT)",
-            margin=dict(l=40, r=40, t=60, b=40)
-        )
-        
-        return fig
-        
-    except Exception as e:
-        raise Exception(f"Line chart error: {str(e)}")
-
-
-def generate_rsi_chart(klines_data, symbol, period=14):
-    """Generate RSI indicator chart"""
-    try:
-        df = pd.DataFrame(klines_data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_volume', 'trades', 'buy_volume', 'buy_quote_volume'
-        ])
-        
-        df['close'] = pd.to_numeric(df['close'], errors='coerce')
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df = df.dropna()
-        
-        rsi = calculate_rsi(df['close'].values, period)
-        
-        fig = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.12,
-            row_heights=[0.6, 0.4],
-            specs=[[{"secondary_y": False}], [{"secondary_y": False}]]
-        )
-        
-        # Price
-        fig.add_trace(
-            go.Scatter(
-                x=df['timestamp'], y=df['close'],
-                mode='lines', name=f"{symbol} Price",
-                line=dict(color='#1f77b4', width=2),
-                hovertemplate="<b>%{x|%Y-%m-%d %H:%M}</b><br>$%{y:.2f}<extra></extra>"
-            ),
-            row=1, col=1
-        )
-        
-        # RSI
-        fig.add_trace(
-            go.Scatter(
-                x=df['timestamp'], y=rsi,
-                mode='lines', name='RSI (14)',
-                line=dict(color='#d62728', width=2),
-                hovertemplate="<b>RSI:</b> %{y:.1f}<extra></extra>"
-            ),
-            row=2, col=1
-        )
-        
-        # Overbought/Oversold lines
-        fig.add_hline(y=70, line_dash="dash", line_color="orange",
-                      row=2, col=1, annotation_text="Overbought")
-        fig.add_hline(y=30, line_dash="dash", line_color="cyan",
-                      row=2, col=1, annotation_text="Oversold")
-        
-        fig.update_layout(
-            title=f"<b>{symbol}/USDT RSI Analysis</b>",
-            height=600,
-            hovermode='x unified',
-            template='plotly_dark',
-            font=dict(size=11),
-            margin=dict(l=40, r=40, t=60, b=40)
-        )
-        
-        fig.update_yaxes(title_text="Price (USDT)", row=1, col=1)
-        fig.update_yaxes(title_text="RSI", row=2, col=1, range=[0, 100])
-        fig.update_xaxes(title_text="Time", row=2, col=1)
-        
-        return fig
-        
-    except Exception as e:
-        raise Exception(f"RSI chart error: {str(e)}")
-
-
-def generate_volume_chart(klines_data, symbol):
-    """Generate volume analysis chart"""
-    try:
-        df = pd.DataFrame(klines_data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_volume', 'trades', 'buy_volume', 'buy_quote_volume'
-        ])
-        
-        df['close'] = pd.to_numeric(df['close'], errors='coerce')
-        df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
-        df['open'] = pd.to_numeric(df['open'], errors='coerce')
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df = df.dropna()
-        
-        colors = ['red' if close < open_ else 'green'
-                  for close, open_ in zip(df['close'], df['open'])]
-        
-        volume_ma = pd.Series(df['volume']).rolling(window=20).mean().values
-        
-        fig = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.12,
-            row_heights=[0.6, 0.4],
-            specs=[[{"secondary_y": False}], [{"secondary_y": False}]]
-        )
-        
-        # Price
-        fig.add_trace(
-            go.Scatter(
-                x=df['timestamp'], y=df['close'],
-                mode='lines', name=f"{symbol} Price",
-                line=dict(color='#1f77b4', width=2),
-                hovertemplate="<b>%{x|%Y-%m-%d %H:%M}</b><br>$%{y:.2f}<extra></extra>"
-            ),
-            row=1, col=1
-        )
-        
-        # Volume
-        fig.add_trace(
-            go.Bar(
-                x=df['timestamp'], y=df['volume'],
-                name='Volume',
-                marker=dict(color=colors),
-                hovertemplate="<b>%{x|%Y-%m-%d %H:%M}</b><br>%{y:.0f}<extra></extra>"
-            ),
-            row=2, col=1
-        )
-        
-        # Volume MA
-        fig.add_trace(
-            go.Scatter(
-                x=df['timestamp'], y=volume_ma,
-                mode='lines', name='Volume MA (20)',
-                line=dict(color='yellow', width=2, dash='dash'),
-                hovertemplate="<b>Vol MA:</b> %{y:.0f}<extra></extra>"
-            ),
-            row=2, col=1
-        )
-        
-        fig.update_layout(
-            title=f"<b>{symbol}/USDT Volume Analysis</b>",
-            height=600,
-            hovermode='x unified',
-            template='plotly_dark',
-            font=dict(size=11),
-            margin=dict(l=40, r=40, t=60, b=40)
-        )
-        
-        fig.update_yaxes(title_text="Price (USDT)", row=1, col=1)
-        fig.update_yaxes(title_text="Volume", row=2, col=1)
-        fig.update_xaxes(title_text="Time", row=2, col=1)
-        
-        return fig
-        
-    except Exception as e:
-        raise Exception(f"Volume chart error: {str(e)}")
-
-
-# ════════════════════════════════════════════════════════════════
-# MAIN CHART GENERATOR FUNCTION
-# ════════════════════════════════════════════════════════════════
-
-def run_chart_generator(symbol, price_data):
-    """
-    Generate all charts from price data
-    
-    Args:
-        symbol: Cryptocurrency symbol (BTC, ETH, etc.)
-        price_data: Dict with 'klines' key containing OHLCV data
-    
-    Returns:
-        Dict with chart figures
-    """
-    try:
-        klines = price_data.get("klines", [])
-        
-        if not klines or len(klines) < 20:
-            return {
-                "success": False,
-                "error": "Insufficient data for charts",
-                "charts": {}
-            }
-        
-        charts = {
-            "candlestick": generate_candlestick_chart(klines, symbol),
-            "trend": generate_line_chart(klines, symbol),
-            "rsi": generate_rsi_chart(klines, symbol),
-            "volume": generate_volume_chart(klines, symbol),
-        }
-        
-        return {
-            "success": True,
-            "charts": charts,
-            "symbol": symbol,
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Chart generation failed: {str(e)}",
-            "charts": {}
-        }
+        print(f"  ⚠️  Chart generation failed: {e}")
+        return {"success": False, "charts": {}}

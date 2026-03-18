@@ -1,53 +1,109 @@
+# GitHub Repo Health Monitor — Cursor Rules
 # ============================================================
-# .cursorrules — Binance AI Agent
-# ============================================================
+# This file tells Cursor exactly how this project is structured
+# so it generates correct code without asking questions.
 
-## Project Overview
-Multi-agent crypto analysis system using LangGraph + Groq + Binance API.
-Fetches live crypto data from Binance public API and generates
-AI-powered analysis via 4 specialized agents.
+## Project Purpose
+Multi-agent system that analyses any public GitHub repository
+and produces a health score, verdict, and actionable report.
 
-## Architecture
-- LangGraph StateGraph orchestrates 4 agents
-- Agent 1 (Price Fetcher): fetches live Binance data
-- Agent 2 (Market Analyst): technical analysis with RSI/SMA
-- Agent 3 (News Sentiment): sentiment analysis via LLM knowledge
-- Agents 2+3 run in PARALLEL via ThreadPoolExecutor
-- Agent 4 (Report Writer): synthesizes all into final report
+## Architecture — Read This First
+LangGraph StateGraph with 4 nodes:
 
-## File Structure
-- app.py              → Streamlit UI only. No logic here.
-- config.py           → ALL settings. Change model/coins here.
-- style.css           → ALL CSS. No inline styles.
-- graph/workflow.py   → LangGraph StateGraph
-- agents/             → One file per agent, one job each
-- tools/binance_tools.py → Binance API calls + LLM factory
-- ui/styles.py        → CSS loader
-- ui/components.py    → Reusable UI components
+  fetch_repo
+      ↓
+  run_parallel  (Activity Analyst + Community Analyst + Repo Explainer)
+      ↓           all 3 via ThreadPoolExecutor(max_workers=3)
+  write_report
+      ↓
+  gen_charts
 
-## Key Conventions
-- get_llm() in binance_tools.py — never instantiate LLM in agents directly
-- All Binance API calls go through binance_tools.py only
-- clean_output() strips markdown fences from all LLM responses
-- detect_coin() extracts coin symbol from natural language query
-- All settings in config.py — never hardcode symbols, URLs, model names
+State key: RepoState (TypedDict in graph/workflow.py)
+Every node receives the full state and returns only the keys it changes.
 
-## Adding a New Coin
-Add to SUPPORTED_COINS dict in config.py:
-  "SYMBOL": "Full Name"
+## File Responsibilities — One File, One Job
+
+app.py
+  - Streamlit UI only
+  - No business logic, no API calls, no data processing
+  - Reads from session_state, calls analyse_repo(), displays results
+  - Never import from agents/ directly
+
+config.py
+  - ALL settings live here and only here
+  - Model name, temperature, API URLs, limits, suggested repos
+  - Never hardcode these values anywhere else
+
+graph/workflow.py
+  - LangGraph StateGraph definition
+  - Imports agents, wires them together, nothing else
+  - analyse_repo(query) is the single public entry point
+
+agents/repo_fetcher.py      - Agent 1: fetch all GitHub data, compute health score
+agents/activity_analyst.py  - Agent 2: commit trends, release cadence, bus factor
+agents/community_analyst.py - Agent 3: issue sentiment, maintainer responsiveness
+agents/repo_explainer.py    - Agent 5: plain-English explanation of the repo
+agents/report_writer.py     - Agent 4: synthesise final verdict and report
+agents/chart_generator.py   - Agent 6: generate all Plotly charts
+
+tools/github_tools.py
+  - ALL GitHub API calls go here via _get() helper
+  - LLM factory: get_llm() — never import ChatGroq in agents directly
+  - health_score() — transparent arithmetic formula
+  - parse_repo() — handles all input formats
+  - fmt_number(), clean_output() — shared utilities
+
+ui/styles.py
+  - CSS injection via st.html() ONLY
+  - Never use components.html() — it creates an iframe
+  - Never use st.markdown() for CSS — it gets sanitised
+
+ui/components.py
+  - Reusable UI components: hero(), repo_header(), stats_row()
+  - All HTML rendered via st.html() NOT st.markdown()
+  - Never put business logic here
+
+## Critical Rules
+
+### CSS and HTML injection
+ALWAYS use st.html() for any HTML or CSS.
+NEVER use st.markdown(..., unsafe_allow_html=True) for HTML blocks.
+NEVER use streamlit.components.v1.html() — it creates an iframe.
+
+### LLM instantiation
+ALWAYS: from tools.github_tools import get_llm; llm = get_llm()
+NEVER: from langchain_groq import ChatGroq; llm = ChatGroq(...)
+
+### GitHub API calls
+ALWAYS go through tools/github_tools.py _get() helper
+NEVER call requests.get("https://api.github.com/...") in agents
+
+### Settings
+ALWAYS import from config.py
+NEVER hardcode model names, API URLs, limits, or repo names
+
+### HTML inside Python strings
+NEVER put # Python comments inside HTML f-strings
+They are not stripped — they render as literal text in the browser
+
+### health_score()
+Formula is pure arithmetic — no LLM involved
+Measures only verifiable signals from GitHub API
+Do not add LLM-based scoring — it would make the formula unauditable
 
 ## Adding a New Agent
-1. Create agents/your_agent.py following existing pattern
-2. Add node in graph/workflow.py
-3. Add to parallel execution in node_run_agents_parallel()
 
-## Running
-pip install -r requirements.txt
-echo GROQ_API_KEY=gsk_your-key > .env
-streamlit run app.py
+1. Create agents/your_agent.py with run_your_agent(repo_data) -> dict
+2. Add your field to RepoState TypedDict in graph/workflow.py
+3. Import and add to node_run_parallel() in workflow.py
+4. Add to initial state dict in analyse_repo()
+5. Display result in app.py
 
-## Binance API
-Uses public endpoints only — no auth needed:
-- /api/v3/ticker/24hr   → 24h stats
-- /api/v3/ticker/price  → all prices
-- /api/v3/klines        → candlestick data
+## Common Mistakes to Avoid
+
+- Putting st.markdown HTML inside with col: blocks — use st.html()
+- Importing analyse_repo before st.set_page_config() in app.py
+- Making GitHub API calls without checking the response is not None
+- Assuming commit_activity API returns instantly — it can return 202 (computing)
+- Using st.markdown("---") thinking it's a divider everywhere — it is, but
+  st.html("<hr>") can cause layout issues — stick to st.markdown("---")

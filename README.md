@@ -1,106 +1,115 @@
-# Binance AI Agent
+# 🔍 GitHub Repo Health Monitor
 
-An intelligent multi-agent cryptocurrency analysis system powered by **LangGraph**, **Groq LLM**, and **Binance Public API**. Four specialized agents work in parallel to deliver real-time market analysis, technical insights, and sentiment-based recommendations.
+An intelligent multi-agent system that analyses any public GitHub repository and answers the question every developer needs answered: **"Is this repo safe to depend on — or is it dying?"**
 
-**Live Demo**: [Coming Soon - Streamlit Deployment]  
 **Author**: Vikas Parmar (@vikasparmarapps) | **Email**: vikasparmar444@gmail.com  
-**GitHub**: github.com/Vikasparmarapps/binance-agent  
+**GitHub**: github.com/Vikasparmarapps  
 
 ---
 
-## 🎯 Features
+## 🎯 What It Does
 
-✨ **Multi-Agent Architecture**: 4 specialized agents orchestrated via LangGraph  
-📊 **Live Market Data**: Real-time prices, volumes, and OHLC from Binance public API  
-🔍 **Technical Analysis**: RSI, SMA, trend detection—100% automated  
-💬 **AI-Powered Sentiment**: Market sentiment analysis via Groq LLM  
-🚀 **Parallel Processing**: Agents 2 & 3 run concurrently (ThreadPoolExecutor)  
-📈 **Synthesis Reports**: Agent 4 creates actionable final recommendations  
-🔐 **Zero Secrets**: Public API only—no trading keys, maximum security  
-⚙️ **Cursor-Ready**: Full `.cursorrules` configuration included  
-🎛️ **Highly Configurable**: Change models, coins, settings in one file  
+You type any GitHub repo name. In 3-5 seconds you get:
+
+- **Health Score** — 0 to 100, calculated from real measurable signals
+- **Verdict** — ADOPT / USE WITH CAUTION / MONITOR / REPLACE
+- **Activity Analysis** — commit trends, release cadence, bus factor risk
+- **Community Analysis** — issue sentiment, maintainer responsiveness
+- **Plain-English Explanation** — what the repo does, who uses it, why choose it
+- **4 Interactive Charts** — health gauge, 52-week commits, radar, issue breakdown
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-Streamlit UI (Query Input)
+Streamlit UI (repo input)
          ↓
-    config.py (ALL settings live here)
+    config.py (ALL settings)
          ↓
-╔═══════════════════════════════════════════════════════════════╗
-║           LangGraph StateGraph Workflow                       ║
-╠═══════════════════════════════════════════════════════════════╣
+╔══════════════════════════════════════════════════════════════╗
+║              LangGraph StateGraph Workflow                   ║
+╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║  Agent 1: Price Fetcher                                     ║
-║  ├─ Binance /api/v3/ticker/24hr (current price, 24h stats) ║
-║  ├─ Binance /api/v3/klines (candlestick OHLCV data)        ║
-║  └─ Output: {price, volume, change%, high, low, open}      ║
+║  Agent 1: Repo Fetcher                                       ║
+║  ├─ GitHub /repos/{owner}/{repo}     → metadata             ║
+║  ├─ GitHub /stats/commit_activity    → 52-week commits      ║
+║  ├─ GitHub /issues                   → open + closed        ║
+║  ├─ GitHub /releases                 → release history      ║
+║  ├─ GitHub /contributors             → bus factor           ║
+║  └─ health_score()                   → 0-100 score         ║
 ║                 ↓                                            ║
-║  ┌──────────────────────────────────────────────────────┐  ║
-║  │ Agent 2: Market Analyst    Agent 3: Sentiment Analyst│  ║
-║  │ (runs in PARALLEL via ThreadPoolExecutor)            │  ║
-║  │                                                      │  ║
-║  │ Agent 2:                   Agent 3:                  │  ║
-║  │ ├─ RSI calculation          ├─ News sentiment       │  ║
-║  │ ├─ SMA trends              ├─ LLM reasoning        │  ║
-║  │ ├─ Signal: BUY/HOLD/SELL   ├─ Bullish/bearish     │  ║
-║  │ └─ Confidence %            └─ Score: -1.0 to +1.0  │  ║
-║  └──────────────────────────────────────────────────────┘  ║
+║  ┌────────────────────────────────────────────────────────┐ ║
+║  │  Agent 2          Agent 3            Agent 5           │ ║
+║  │  Activity         Community          Repo              │ ║
+║  │  Analyst          Analyst            Explainer         │ ║
+║  │                                                        │ ║
+║  │  Commit trends    Issue sentiment    What is it?       │ ║
+║  │  Release cadence  Bug/feature ratio  Use cases         │ ║
+║  │  Bus factor       Maintainer resp.   Who uses it?      │ ║
+║  │  Signal:          Sentiment:         Alternatives      │ ║
+║  │  THRIVING/STABLE  ACTIVE/QUIET       Plain English     │ ║
+║  │  /SLOWING/STALE   /NEGLECTED                           │ ║
+║  │                                                        │ ║
+║  │         (all 3 run in PARALLEL)                        │ ║
+║  └────────────────────────────────────────────────────────┘ ║
 ║                 ↓                                            ║
-║  Agent 4: Report Writer                                     ║
-║  ├─ Synthesize all agent outputs                           ║
-║  ├─ Generate narrative analysis                            ║
-║  ├─ Reasoning: why BUY/SELL                                ║
-║  └─ Output: final_report (Markdown)                        ║
+║  Agent 4: Report Writer                                      ║
+║  ├─ Synthesises all 3 agent outputs                         ║
+║  ├─ Generates verdict: ADOPT/USE WITH CAUTION/MONITOR/      ║
+║  │  REPLACE                                                  ║
+║  ├─ Lists strengths, risks, next steps                      ║
+║  └─ Output: final_report (Markdown)                         ║
 ║                 ↓                                            ║
-║         Display in Streamlit UI                            ║
-╚═══════════════════════════════════════════════════════════════╝
+║  Agent 5: Chart Generator                                    ║
+║  ├─ Health score gauge                                      ║
+║  ├─ 52-week commit history bar chart                        ║
+║  ├─ Health radar (5 dimensions)                             ║
+║  └─ Issue breakdown bar chart                               ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 ### Tech Stack
 
 | Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Orchestration** | LangGraph (StateGraph) | Agent coordination & workflow |
-| **LLM** | Groq (llama-3.1-8b-instant) | Fast inference, cost-efficient |
-| **Market Data** | Binance Public API (REST) | Real-time crypto market data |
-| **Frontend** | Streamlit | Interactive web UI |
-| **Concurrency** | ThreadPoolExecutor | Parallel agent execution |
-| **Data** | Pandas, NumPy | Technical indicators & analysis |
+|---|---|---|
+| Orchestration | LangGraph StateGraph | Agent coordination |
+| LLM | Groq llama-3.1-8b-instant | Fast inference |
+| Data | GitHub Public API | Repo metrics |
+| Frontend | Streamlit | Interactive UI |
+| Charts | Plotly | Interactive visualisations |
+| Concurrency | ThreadPoolExecutor | 3 agents in parallel |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-binance-agent/
-├── app.py                    # Streamlit UI entry point (logic-free)
-├── config.py                 # ⭐ ALL settings live here
-├── .cursorrules              # Cursor multi-agent configuration
-├── .env.example              # Environment template
-├── requirements.txt          # Python dependencies
+github-repo-health/
+├── app.py                      # Streamlit UI — zero business logic
+├── config.py                   # ALL settings live here
+├── style.css                   # All CSS
+├── requirements.txt
+├── .env.example
+├── .cursorrules                # Cursor AI configuration
 │
 ├── graph/
-│   └── workflow.py           # LangGraph StateGraph definition
+│   └── workflow.py             # LangGraph StateGraph
 │
 ├── agents/
-│   ├── price_fetcher.py      # Agent 1: Fetch Binance data
-│   ├── market_analyst.py     # Agent 2: Technical analysis (RSI, SMA)
-│   ├── sentiment_analyst.py  # Agent 3: Sentiment analysis
-│   └── report_writer.py      # Agent 4: Synthesize report
+│   ├── repo_fetcher.py         # Agent 1: fetch all GitHub data
+│   ├── activity_analyst.py     # Agent 2: commit + release analysis
+│   ├── community_analyst.py    # Agent 3: issue + community sentiment
+│   ├── repo_explainer.py       # Agent 5: plain-English explanation
+│   ├── report_writer.py        # Agent 4: synthesise final report
+│   └── chart_generator.py      # Agent 5: Plotly charts
 │
 ├── tools/
-│   └── binance_tools.py      # Binance API calls + LLM factory
+│   └── github_tools.py         # GitHub API + LLM factory + health_score()
 │
-├── ui/
-│   ├── styles.py             # CSS loader
-│   └── components.py         # Reusable UI components
-│
-|── DEPLOYMENT.md
-|
-└── README.md
+└── ui/
+    ├── styles.py               # CSS via st.html()
+    └── components.py           # Reusable UI components
 ```
 
 ---
@@ -108,249 +117,115 @@ binance-agent/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.9+**
-- **Groq API key** (free: https://console.groq.com)
-- **Internet connection** (Binance API access)
+- Python 3.9+
+- Groq API key — free at https://console.groq.com
+- Internet connection
 
 ### Installation
 
-1. **Clone repository**
 ```bash
-git clone https://github.com/Vikasparmarapps/binance-agent.git
-cd binance-agent
-```
+# 1. Clone
+git clone https://github.com/Vikasparmarapps/github-repo-health.git
+cd github-repo-health
 
-2. **Create virtual environment**
-```bash
+# 2. Virtual environment
 python -m venv venv
-source venv/bin/activate
-# On Windows: venv\Scripts\activate
-```
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 
-3. **Install dependencies**
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
-4. **Configure environment**
-```bash
+# 4. Configure
 cp .env.example .env
-# Edit .env and add your Groq API key
-nano .env
-```
+# Add your GROQ_API_KEY to .env
 
-5. **Run application**
-```bash
+# 5. Run
 streamlit run app.py
 ```
 
-Open your browser to `http://localhost:8501`
+Open `http://localhost:8501`
 
 ---
 
 ## 💻 Usage
 
-### Basic Workflow
-
-**Input**: Natural language query about a cryptocurrency
+**Input** — any of these formats work:
 ```
-"Analyze BTC market conditions"
-"What's the sentiment on Ethereum?"
-"Should I watch Solana right now?"
-```
-
-**Processing**:
-1. Extract coin symbol via `detect_coin()`
-2. Agent 1 fetches live data from Binance
-3. Agent 2 & 3 analyze in parallel
-4. Agent 4 synthesizes final report
-
-**Output**:
-```
-BTC/USDT Market Analysis
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 Price Data
-Current: $65,432.50 (+2.34% in 24h)
-24h High: $66,100.00 | Low: $64,200.00
-Volume: 28.5B USDT
-
-📈 Technical Analysis
-RSI: 58.2 (Neutral zone)
-SMA-20: $65,100 | SMA-50: $64,800
-Trend: Slight uptrend with consolidation
-Signal: HOLD (wait for breakout)
-
-💬 Sentiment
-Market Sentiment: Bullish
-Confidence: 72%
-Reasoning: Recent positive news, strong support levels
-
-🎯 Final Recommendation
-ACTION: HOLD / Watch for breakout above $66,000
-RISK: Moderate | TIMEFRAME: 4-6 hours
+langchain-ai/langchain
+https://github.com/streamlit/streamlit
+microsoft/autogen
+fastapi
 ```
 
-### Supported Cryptocurrencies
+**Output example** — `streamlit/streamlit`:
+```
+Health Score: 82/100 (Excellent)
+Verdict: ADOPT
 
-Default: **BTC**, **ETH**, **BNB**, **SOL**
+Strengths:
+- 287 commits in last 12 weeks — highly active
+- Issues close ratio 71% — responsive maintainers  
+- 340 unique contributors — low bus factor risk
 
-Add more in `config.py`:
-```python
-SUPPORTED_COINS = {
-    "BTC": "Bitcoin",
-    "ETH": "Ethereum",
-    "XRP": "Ripple",  # Add any coin
-}
+Risks:
+- 847 open issues — large backlog
+- Commit trend -8% vs prior period — slight slowdown
+
+Recommendation: ADOPT. Core team is active, releases frequent.
+Safe to build production apps on top of Streamlit.
 ```
 
 ---
 
 ## ⚙️ Configuration
 
-All settings in one place: **`config.py`**
+All settings in `config.py`:
 
 ```python
-# ===== LLM Settings =====
-MODEL_NAME = "llama-3.1-8b-instant"
-TEMPERATURE = 0.7
+GROQ_MODEL           = "llama-3.1-8b-instant"
+COMMIT_LOOKBACK_DAYS = 90
+ISSUES_LIMIT         = 50
+RELEASES_LIMIT       = 10
 
-# ===== Binance API =====
-BINANCE_BASE_URL = "https://api.binance.com"
-TIMEFRAME = "1h"  # Candlestick interval
-
-# ===== Coins =====
-SUPPORTED_COINS = {
-    "BTC": "Bitcoin",
-    "ETH": "Ethereum",
-    "BNB": "Binance Coin",
-    "SOL": "Solana",
-}
-
-# ===== Technical Indicators =====
-RSI_PERIOD = 14
-SMA_SHORT = 20
-SMA_LONG = 50
+SUGGESTED_REPOS = [
+    "langchain-ai/langchain",
+    "streamlit/streamlit",
+    ...
+]
 ```
-
-**Never hardcode settings**—edit only `config.py`.
-
----
-
-## 🔧 How It Works
-
-### Agent 1: Price Fetcher
-Fetches live data from Binance public endpoints:
-- `/api/v3/ticker/24hr` → Current price, 24h stats
-- `/api/v3/klines` → OHLCV candlestick data (100 candles, 1h interval)
-
-### Agent 2: Market Analyst
-Analyzes technical indicators:
-- RSI (Relative Strength Index) → Momentum (overbought/oversold)
-- SMA (Simple Moving Averages) → Trend direction (20-period, 50-period)
-- Signal generation: BUY (bullish), HOLD (neutral), SELL (bearish)
-
-### Agent 3: Sentiment Analyst
-Evaluates market sentiment via LLM reasoning:
-- Price action analysis
-- Volume strength assessment
-- Market condition evaluation
-- Bullish/bearish scoring (-1.0 to +1.0)
-
-### Agent 4: Report Writer
-Synthesizes all outputs into coherent analysis:
-- Combines signals from Agents 1-3
-- Creates narrative explanation
-- Provides actionable recommendations
-- Outputs Markdown-formatted report
 
 ---
 
 ## 🔐 Security
 
-✅ **Public API Only**: Binance public endpoints (no auth)  
-✅ **No Secrets in Code**: Groq API key in `.env`  
-✅ **Environment Variables**: `.env` never committed  
-✅ **Read-Only Operations**: Analysis only, no trading execution  
-✅ **Input Validation**: Coin symbols validated against whitelist  
+- Public GitHub API only — no auth needed for public repos
+- Groq API key stored in `.env` — never committed
+- Optional `GITHUB_TOKEN` raises rate limit from 60 to 5,000 req/hr
+- No user data stored — stateless analysis
 
 ---
 
-## 📊 Performance
+## 📊 Health Score Formula
 
-| Metric | Value |
-|--------|-------|
-| **Total Execution Time** | 2-4 seconds |
-| **Agent 1 (Price Fetch)** | 0.3-0.5s |
-| **Agents 2+3 (Parallel)** | 1.5-2.5s combined |
-| **Agent 4 (Synthesis)** | 0.5-1s |
-| **Binance API Latency** | <500ms |
-| **Groq LLM Inference** | ~1-2s per agent |
-| **Rate Limit** | 1200 req/min (Binance public) |
+Transparent calculation — no fake accuracy claims:
 
-See `PERFORMANCE.md` for detailed benchmarks and optimization notes.
-
----
-
-## 🛠️ Development Conventions
-
-### Never Do This ❌
-```python
-# Don't instantiate LLM in agents
-from langchain_groq import ChatGroq
-llm = ChatGroq(model_name="llama-3.1-8b-instant")
-
-# Don't hardcode symbols
-symbol = "BTCUSDT"
-
-# Don't make Binance calls outside tools
-requests.get("https://api.binance.com/...")
-
-# Don't use inline CSS styles
-st.markdown("<style>color: red;</style>")
 ```
+Score (0-100) = Activity(30) + Momentum(20) + Responsiveness(20) 
+              + Recency(20) + Release Cadence(10)
 
-### Always Do This ✅
-```python
-# Use LLM factory
-from tools.binance_tools import get_llm
-llm = get_llm()
-
-# Use config
-from config import SUPPORTED_COINS
-symbol = f"{coin}USDT"
-
-# Use tools module
-from tools.binance_tools import fetch_binance_data
-data = fetch_binance_data(symbol)
-
-# Use styles.py
-from ui.styles import load_styles
-load_styles()
+Activity:       active weeks in last 12 / 12 × 30
+Momentum:       commit trend vs prior 12 weeks
+Responsiveness: closed issues / (open + closed) × 20
+Recency:        days since last push → 20/15/8/0 pts
+Release cadence: days since last release → 10/6/3/0 pts
+Penalty:        -30 if repo is archived
 ```
-
----
-
-## 📚 Dependencies
-
-See `requirements.txt`:
-- **langgraph** - State machine orchestration
-- **langchain** - LLM framework
-- **groq** - LLM API client
-- **streamlit** - Web UI
-- **pandas** - Data analysis
-- **numpy** - Numerical computing
-- **requests** - HTTP requests
-- **python-dotenv** - Environment variables
 
 ---
 
 ## 📧 Contact
 
-**Author**: Vikas Parmar  
-**Email**: vikasparmar444@gmail.com  
-**GitHub**: @Vikasparmarapps  
+**Vikas Parmar** | vikasparmar444@gmail.com | @Vikasparmarapps
 
----
-
-**Built with ❤️ using LangGraph + Groq + Binance API**
+Built with LangGraph + Groq + GitHub API

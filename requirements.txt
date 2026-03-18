@@ -1,6 +1,6 @@
 # Binance AI Agent — Requirements
 # pip install -r requirements.txt
-
+ 
 streamlit>=1.32.0
 langgraph>=0.1.0
 langchain>=0.2.0
@@ -9,3 +9,5 @@ groq>=0.9.0
 requests>=2.31.0
 python-dotenv>=1.0.0
 plotly>=5.17.0
+pandas>=2.0.0
+numpy>=1.24.0

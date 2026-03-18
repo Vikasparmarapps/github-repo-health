@@ -1,315 +1,119 @@
-# 🚀 Deployment Guide - Binance AI Agent
-
-Deploy your Binance AI Agent to Streamlit Cloud in 5 minutes!
+# Deployment Guide — GitHub Repo Health Monitor
 
 ---
 
-## Prerequisites
+## Local Development
 
-- GitHub account (free)
-- Streamlit Cloud account (free)
-- Your project pushed to GitHub
+```bash
+# 1. Clone and enter project
+git clone https://github.com/Vikasparmarapps/github-repo-health.git
+cd github-repo-health
+
+# 2. Create virtual environment
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Set up environment variables
+cp .env.example .env
+# Open .env and add:
+# GROQ_API_KEY=your_key_here
+# GITHUB_TOKEN=your_token_here  (optional but recommended)
+
+# 5. Run
+streamlit run app.py
+# Opens at http://localhost:8501
+```
 
 ---
 
-## Step 1: Prepare Your Project
+## Environment Variables
 
-### Create `.streamlit/secrets.toml`
+| Variable | Required | Where to get |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | https://console.groq.com (free) |
+| `GITHUB_TOKEN` | No | https://github.com/settings/tokens |
 
-In your project root, create `.streamlit/secrets.toml`:
+Without `GITHUB_TOKEN` the GitHub API allows 60 requests/hour.
+With `GITHUB_TOKEN` the limit rises to 5,000 requests/hour.
 
+To create a GitHub token: Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token → select `public_repo` scope only.
+
+---
+
+## Streamlit Cloud Deployment (Free)
+
+1. Push your code to GitHub (make sure `.env` is in `.gitignore`)
+2. Go to https://share.streamlit.io
+3. Click "New app"
+4. Select your repository and set `app.py` as the main file
+5. In "Advanced settings" → "Secrets", add:
 ```toml
 GROQ_API_KEY = "your_groq_api_key_here"
+GITHUB_TOKEN = "your_github_token_here"
 ```
+6. Click Deploy
 
-**Don't commit this file!** Add to `.gitignore`:
-
-```
-.streamlit/secrets.toml
-```
-
-### Update `requirements.txt`
-
-Make sure it has all dependencies:
-
-```
-langgraph>=0.0.20
-langchain>=0.1.0
-groq>=0.4.0
-streamlit>=1.28.0
-plotly>=5.17.0
-pandas>=2.0.0
-numpy>=1.24.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-```
-
-### Create `.gitignore`
-
-```
-.env
-.env.local
-.streamlit/secrets.toml
-__pycache__/
-*.pyc
-.DS_Store
-.cache/
-.pytest_cache/
-```
+The app will be live at `https://yourname-reponame.streamlit.app`
 
 ---
 
-## Step 2: Push to GitHub
+## Railway Deployment
 
 ```bash
-# Initialize git (if not already)
-git init
+# Install Railway CLI
+npm install -g @railway/cli
 
-# Add all files
-git add .
-
-# Commit
-git commit -m "Add Binance AI Agent with charts"
-
-# Create repo on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/binance_agent.git
-git branch -M main
-git push -u origin main
+# Login and deploy
+railway login
+railway init
+railway up
 ```
+
+Add environment variables in the Railway dashboard under Variables.
 
 ---
 
-## Step 3: Deploy to Streamlit Cloud
+## Docker (Optional)
 
-### Go to Streamlit Cloud
-
-1. Open https://streamlit.io/cloud
-2. Click "Sign in" → Sign in with GitHub
-3. Click "New app"
-
-### Configure Deployment
-
-1. **Repository:** Select your repo
-   - Example: `Vikasparmarapps/binance_agent`
-
-2. **Branch:** Select `main`
-
-3. **Main file path:** Enter `app.py`
-
-4. **App URL:** (Auto-generated)
-   - Example: `binance-ai-agent.streamlit.app`
-
-### Add Secrets
-
-1. Click "Advanced settings"
-2. Paste your `.streamlit/secrets.toml` content:
-
-```toml
-GROQ_API_KEY = "gsk_your_actual_key_here"
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 8501
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 ```
-
-3. Click "Deploy"
-
----
-
-## Step 4: Monitor Deployment
-
-Streamlit will show:
-
-```
-🎈 Streamlit server is securely set up.
-You can now view your Streamlit app in your browser.
-URL: https://binance-ai-agent.streamlit.app
-```
-
----
-
-## Step 5: Test Live
-
-1. Open your app URL
-2. Click "Show BTC chart"
-3. Wait for analysis
-4. See charts! 📊
-
----
-
-## After Deployment
-
-### Update Your App
-
-Push changes to GitHub:
 
 ```bash
-git add .
-git commit -m "Fix: quick buttons auto-trigger"
-git push
+docker build -t github-health .
+docker run -p 8501:8501 \
+  -e GROQ_API_KEY=your_key \
+  -e GITHUB_TOKEN=your_token \
+  github-health
 ```
-
-Streamlit auto-deploys within 1 minute! ✨
 
 ---
 
 ## Troubleshooting
 
-### "ModuleNotFoundError: No module named 'plotly'"
-
-**Fix:** Update `requirements.txt` and push:
-
-```
-plotly>=5.17.0
-```
-
+**`ModuleNotFoundError`**
 ```bash
-git add requirements.txt
-git commit -m "Add plotly"
-git push
+pip install -r requirements.txt
 ```
 
-### "API key error"
+**`GROQ_API_KEY not set`**
+Make sure your `.env` file is in the same folder as `app.py` and contains `GROQ_API_KEY=your_key`.
 
-**Fix:** Check `.streamlit/secrets.toml` in Streamlit Cloud settings
+**`GitHub API 403 rate limit`**
+Add a `GITHUB_TOKEN` to your `.env` file. The public limit is 60 requests/hour; with a token it's 5,000/hour.
 
-1. Go to your app settings
-2. Secrets section
-3. Verify `GROQ_API_KEY` is set correctly
+**`Repo not found`**
+Make sure the repo is public and the format is `owner/repo` e.g. `langchain-ai/langchain`.
 
-### Slow Performance
-
-**Optimize:**
-- Cache data with `@st.cache_data`
-- Use smaller data limits
-- Deploy to higher tier (if needed)
-
----
-
-## Performance Tips
-
-### 1. Cache Results
-
-```python
-@st.cache_data(ttl=300)
-def get_price_data(symbol):
-    return run_price_fetcher(symbol)
-```
-
-### 2. Optimize Charts
-
-```python
-# Use fewer data points for faster rendering
-KLINES_LIMIT = 50  # Instead of 100
-```
-
-### 3. Monitor Resources
-
-Visit your app's "Manage app" → "Logs" to see:
-- Memory usage
-- CPU usage
-- API calls
-
----
-
-## Sharing Your App
-
-### Share Link
-
-```
-https://binance-ai-agent.streamlit.app
-```
-
-### Embed in Website
-
-```html
-<iframe 
-  src="https://binance-ai-agent.streamlit.app?embedded=true" 
-  height="600" 
-  width="100%">
-</iframe>
-```
-
-### Add to Portfolio
-
-```markdown
-## Binance AI Agent
-
-🚀 Live Demo: [binance-ai-agent.streamlit.app](https://binance-ai-agent.streamlit.app)
-
-AI-powered cryptocurrency analysis with interactive charts.
-
-**Tech Stack:**
-- LangGraph (agent orchestration)
-- Groq LLaMA (LLM)
-- Binance API (live data)
-- Streamlit (web UI)
-- Plotly (charts)
-
-**Features:**
-- Real-time price analysis
-- Technical indicators
-- Market sentiment
-- Interactive charts
-- 2.8s analysis time
-```
-
----
-
-## Continuous Deployment
-
-### Auto-Deploy on Push
-
-Streamlit Cloud automatically deploys when you push to GitHub!
-
-```bash
-# Make changes
-git add .
-git commit -m "Update app"
-git push  # → Auto-deploys! ✨
-```
-
-### Roll Back to Previous Version
-
-1. Go to Streamlit Cloud settings
-2. Select previous deployment
-3. Click "Restore"
-
----
-
-## Production Checklist
-
-- [ ] Requirements.txt updated with all dependencies
-- [ ] .gitignore configured properly
-- [ ] Secrets added to Streamlit Cloud
-- [ ] App tested locally with `streamlit run app.py`
-- [ ] No hardcoded API keys in code
-- [ ] All imports working
-- [ ] Charts displaying correctly
-- [ ] Quick buttons triggering analysis
-- [ ] No error messages in console
-- [ ] Performance acceptable (<5 seconds)
-
----
-
-## Support
-
-### Streamlit Cloud Docs
-https://docs.streamlit.io/streamlit-cloud
-
-### Community Forum
-https://discuss.streamlit.io
-
-### Issues
-Check your app logs: Manage app → Logs
-
----
-
-## Your App is Live! 🎉
-
-Congratulations! Your Binance AI Agent is now deployed and accessible worldwide!
-
-Share with:
-- Friends: Send app link
-- Portfolio: Add to GitHub projects
-- Social: Tweet/share your achievement
-
-**Your URL:** `https://binance-ai-agent.streamlit.app` (example)
-
-Happy deploying! 🚀📊
+**CSS showing as raw text**
+Make sure `ui/styles.py` uses `st.html()` not `st.markdown()` for CSS injection.
