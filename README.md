@@ -2,6 +2,7 @@
 
 An intelligent multi-agent system that analyses any public GitHub repository and answers the question every developer needs answered: **"Is this repo safe to depend on — or is it dying?"**
 
+**Live Demo**: https://app-repo-health.streamlit.app/  
 **Author**: Vikas Parmar (@vikasparmarapps) | **Email**: vikasparmar444@gmail.com  
 **GitHub**: github.com/Vikasparmarapps  
 
